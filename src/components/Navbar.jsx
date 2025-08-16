@@ -6,7 +6,7 @@ const Navbar = () => {
   const [token, setToken] = useState(true);
   const navigate = useNavigate();
   return (
-    <div className="flex items-center justify-between py-4 mb-5 text-sm border-b border-b-gray-400">
+    <section className="flex items-center justify-between py-4 mb-5 text-sm border-b border-b-gray-400">
       <img className="w-44 cursor-pointer" src={assets.logo} />
       <ul className="hidden md:flex gap-5 font-medium items-start ">
         <NavLink to="/">
@@ -63,7 +63,7 @@ const Navbar = () => {
           </button>
         )}
       </div>
-    </div>
+    </section>
   );
 };
 
