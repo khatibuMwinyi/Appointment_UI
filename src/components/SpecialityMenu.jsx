@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
 import { specialityData } from "../assets/assets";
+import SpecialityCard from "./SpecialityCard";
 
 const SpecialityMenu = () => {
   return (
@@ -14,15 +14,7 @@ const SpecialityMenu = () => {
       </p>
       <div className="flex gap-4 w-full pt-5 overflow-scroll justify-center">
         {specialityData.map((item, index) => (
-          <Link
-            onClick={() => scrollTo(0, 0)}
-            key={index}
-            to={`/doctors/${item.speciality}`}
-            className="flex flex-col items-center text-xs cursor-pointer flex-shrink-0 hover:translate-y-[-10px] transition-all duration-500"
-          >
-            <img className="w-16 sm:w-24 mb-2" src={item.image} alt="" />
-            <p>{item.speciality}</p>
-          </Link>
+          <SpecialityCard key={index} item={item} />
         ))}
       </div>
     </section>
