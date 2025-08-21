@@ -5,7 +5,10 @@ const DoctorCard = ({ doctor }) => {
   const navigate = useNavigate();
   return (
     <div
-      onClick={() => navigate(`/appointment/${doctor._id}`)}
+      onClick={() => {
+        navigate(`/appointment/${doctor._id}`);
+        scrollTo(0, 0);
+      }}
       className="border border-blue-200 rounded-xl overflow-hidden cursor-pointer hover:translate-y-[-10px] transition-all duration-500"
     >
       <img className="bg-blue-50 " src={doctor.image} alt="" />
