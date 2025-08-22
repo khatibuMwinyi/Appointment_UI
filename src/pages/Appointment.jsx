@@ -1,7 +1,6 @@
-import { use, useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
-import { useState } from "react";
 import { assets } from "../assets/assets";
 import RelatedDoctors from "../components/RelatedDoctors";
 
@@ -15,125 +14,103 @@ const Appointment = () => {
   const [slotIndex, setSlotIndex] = useState(0);
   const [slotTime, setSlotTime] = useState("");
 
-  const fetchDocInfo = async () => {
-    const docInfo = doctors.find((doc) => doc._id === docId);
-    setDocInfos(docInfo);
-    console.log(docInfo);
-  };
+  // Fetch doctor info
+  useEffect(() => {
+    const info = doctors.find((doc) => doc._id === docId);
+    setDocInfos(info);
+  }, [doctors, docId]);
 
+  // Generate slots whenever doctor info is available
+  useEffect(() => {
+    if (docInfos) getAvailableSlots();
+  }, [docInfos]);
+
+  // ------------------- getAvailableSlots Function -------------------
   const getAvailableSlots = () => {
-    const allSlots = [];
+    // Get today's date
     const today = new Date();
 
-    for (let i = 0; i < 7; i++) {
-      // Create current date for the day
-      const currentDate = new Date(today);
-      currentDate.setDate(today.getDate() + i);
+    // Array to hold all 7 days of slots
+    const allSlots = [];
 
-      // Set end time for the day (21:00)
-      const endTime = new Date(currentDate);
-      endTime.setHours(21, 0, 0, 0);
+    for (let i = 0; i < 7; i++) {
+      // Create a new date for the current day (today + i days)
+      const day = new Date(today);
+      day.setDate(today.getDate() + i);
+
+      // Set start and end time for this day
+      const start = new Date(day); 
+      const end = new Date(day); 
+      end.setHours(21, 0, 0, 0);
 
       if (i === 0) {
-        // Today: round to next 30-minute slot
-        const now = new Date();
-        let nextHour = now.getHours();
-        let nextMinute = now.getMinutes();
+        // Today → round to the next half-hour slot
+        let hr = today.getHours(); // current hour
+        let min = today.getMinutes() >= 30 ? 0 : 30; // next 30-min increment
+        if (today.getMinutes() >= 30) hr++; // move to next hour if past 30
+        if (hr < 10) (hr = 10), (min = 0); // minimum start at 10:00 AM
 
-        if (nextMinute >= 30) {
-          nextHour += 1;
-          nextMinute = 0;
-        } else {
-          nextMinute = 30;
-        }
+        start.setHours(hr, min, 0, 0); // set start time for today
 
-        // Ensure minimum start at 10:00 AM
-        if (nextHour < 10) {
-          nextHour = 10;
-          nextMinute = 0;
-        }
-
-        currentDate.setHours(nextHour, nextMinute, 0, 0);
-
-        // If after end time, skip today
-        if (currentDate >= endTime) {
-          allSlots.push([]);
-          continue;
+        // If rounded time is after end time, skip today
+        if (start >= end) {
+          allSlots.push([]); 
+          continue; // skip to next day
         }
       } else {
-        // Future days: start at 10:00 AM
-        currentDate.setHours(10, 0, 0, 0);
+        // Future days → always start at 10:00 AM
+        start.setHours(10, 0, 0, 0);
       }
 
-      // Generate slots for the day
-      const timeSlots = [];
-      while (currentDate < endTime) {
-        const slotDate = new Date(currentDate);
-        const formattedTime = slotDate.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
+      // Generate 30-minute slots for this day
+      const slots = [];
+      while (start < end) {
+        slots.push({
+          datetime: new Date(start), 
+          time: start.toLocaleTimeString([], {
+            
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }),
         });
 
-        timeSlots.push({
-          datetime: slotDate,
-          time: formattedTime,
-        });
-
-        // increment by 30 minutes
-        currentDate.setMinutes(currentDate.getMinutes() + 30);
+        start.setMinutes(start.getMinutes() + 30); // move to next 30-min slot
       }
 
-      allSlots.push(timeSlots);
+      allSlots.push(slots);
     }
 
+    // Update React state with all 7 days of slots
     setDocSlots(allSlots);
   };
 
-  useEffect(() => {
-    fetchDocInfo();
-  }, [doctors, docId]);
-
-  useEffect(() => {
-    getAvailableSlots();
-  }, [docInfos]);
-
-  useEffect(() => {
-    console.log(docSlots);
-  }, [docSlots]);
   return (
     docInfos && (
       <div>
-        {/* --------- Doctors Details --------- */}
-        <div className="flex flex-col sm:flex-row gap-4 ">
-          <div>
-            <img
-              className="bg-primary w-full sm:max-w-72 rounded-lg"
-              src={docInfos.image}
-              alt=""
-            />
-          </div>
-          {/* --------- Doctors Info --------- */}
+        {/* --------- Doctor Details --------- */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <img
+            className="bg-primary w-full sm:max-w-72 rounded-lg"
+            src={docInfos.image}
+            alt={docInfos.name}
+          />
           <div className="flex-1 border border-gray-400 rounded-lg p-8 py-7 bg-white mx-2 sm:mx-0 mt-[-80px] sm:mt-0">
             <h1 className="flex items-center gap-2 text-2xl font-medium text-gray-900">
-              {docInfos.name}{" "}
-              <img className="w-5" src={assets.verified_icon} alt="" />
+              {docInfos.name}
+              <img className="w-5" src={assets.verified_icon} alt="verified" />
             </h1>
-            <div className="flex items-center gap-2 text-sm mt-1 text-gray-600">
-              <p>
-                {docInfos.degree} - {docInfos.speciality}
-              </p>
-              <button className="border border-blue-50 py-0.5 px-2 text-xs rounded-full">
+            <p className="flex items-center gap-2 text-sm mt-1 text-gray-600">
+              {docInfos.degree} - {docInfos.speciality}
+              <span className="border border-blue-50 py-0.5 px-2 text-xs rounded-full">
                 {docInfos.experience}
-              </button>
-            </div>
-            <div>
-              <h1 className="flex items-center gap-1 text-sm  font-medium text-gray-900 mt-3">
-                About <img src={assets.info_icon} alt="" />
-              </h1>
-              <p className="text-sm text-gray-500 max-w-[700px]">
-                {docInfos.about}
-              </p>
+              </span>
+            </p>
+            <div className="mt-3 text-sm text-gray-500 max-w-[700px]">
+              <strong className="text-gray-900 flex items-center gap-1 font-medium mb-1">
+                About <img src={assets.info_icon} alt="info" />
+              </strong>
+              {docInfos.about}
             </div>
             <p className="text-gray-500 text-sm mt-4">
               Appointment fee:{" "}
@@ -145,49 +122,51 @@ const Appointment = () => {
           </div>
         </div>
 
-        {/*--------- Booking Slots ---------- */}
-        <div className="sm:ml-72 sm:pl-4 font-medium text-gray-700">
+        {/* --------- Booking Slots --------- */}
+        <div className="sm:ml-72 sm:pl-4 font-medium text-gray-700 mt-6">
           <p>Booking Slots</p>
-          <div className="flex gap-3 items-center w-full overflow-x-scroll mt-4">
-            {docSlots.length > 0 &&
-              docSlots.map((item, index) => (
-                <div
-                  onClick={() => setSlotIndex(index)}
-                  className={`text-center py-6 min-w-16 rounded-full  cursor-pointer ${
-                    slotIndex === index
-                      ? "bg-primary text-white"
-                      : "border border-gray-200"
-                  }`}
-                  key={index}
-                >
-                  <p>{item[0] && daysOfWeek[item[0].datetime.getDay()]}</p>
-                  <p>{item[0] && item[0].datetime.getDate()}</p>
-                </div>
-              ))}
+
+          {/* Days */}
+          <div className="flex gap-3 overflow-x-scroll mt-4">
+            {docSlots.map((slots, i) => (
+              <div
+                key={i}
+                onClick={() => setSlotIndex(i)}
+                className={`text-center py-6 min-w-16 rounded-full cursor-pointer ${
+                  slotIndex === i
+                    ? "bg-primary text-white"
+                    : "border border-gray-200"
+                }`}
+              >
+                <p>{slots[0] && daysOfWeek[slots[0].datetime.getDay()]}</p>
+                <p>{slots[0]?.datetime.getDate()}</p>
+              </div>
+            ))}
           </div>
-          <div className="flex item-center gap-3 w-full overflow-x-scroll mt-3">
-            {docSlots.length > 0 &&
-              docSlots[slotIndex].map((item, index) => (
-                <p
-                  onClick={() => setSlotTime(item.time)}
-                  className={`text-sm font-light flex-shrink-0 px-5 py-2 rounded-full cursor-pointer ${
-                    item.time == slotTime
-                      ? "bg-primary text-white"
-                      : "text-gray-400 border border-gray-300"
-                  }`}
-                  key={index}
-                >
-                  {item.time.toLowerCase()}
-                </p>
-              ))}
+
+          {/* Times */}
+          <div className="flex gap-3 overflow-x-scroll mt-3">
+            {docSlots[slotIndex]?.map((slot, i) => (
+              <p
+                key={i}
+                onClick={() => setSlotTime(slot.time)}
+                className={`text-sm font-light flex-shrink-0 px-5 py-2 rounded-full cursor-pointer ${
+                  slot.time === slotTime
+                    ? "bg-primary text-white"
+                    : "text-gray-400 border border-gray-300"
+                }`}
+              >
+                {slot.time.toLowerCase()}
+              </p>
+            ))}
           </div>
-          <button className="bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6 cursor-pointer">
+
+          <button className="bg-primary text-white text-sm font-light px-14 py-3 rounded-full my-6">
             Book an Appointment
           </button>
         </div>
 
-        {/* --------- List of Related Doctors */}
-
+        {/* --------- Related Doctors --------- */}
         <RelatedDoctors docId={docId} speciality={docInfos.speciality} />
       </div>
     )
