@@ -39,7 +39,7 @@ const Footer = () => {
 
       {/* ----- Copyright Text */}
       <div>
-        <hr />
+        <hr className="bg-zinc-400 h-[1px] border-none" />
         <p className="py-5 text-sm text-center">
           Copyright 2025@ Prescripto - All Right Reserved
         </p>
