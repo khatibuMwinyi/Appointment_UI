@@ -169,6 +169,7 @@ const MyProfile = () => {
               <input
                 className="max-w-28 bg-gray-100 focus:outline-gray-300"
                 type="date"
+                value={userData.dob || ""}
                 onChange={(e) =>
                   setUserData((prev) => ({ ...prev, dob: e.target.value }))
                 }

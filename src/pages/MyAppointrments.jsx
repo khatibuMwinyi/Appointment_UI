@@ -62,6 +62,33 @@ const MyAppointrments = () => {
     } catch (error) {}
   };
 
+  const handlePay = async (appointmentId) => {
+    try {
+      console.log("Initiating payment for appointment:", appointmentId);
+      const { data } = await axios.post(
+        backendUrl + "/api/payment/initiate",
+        { appointmentId },
+        { headers: { token } }
+      );
+
+      console.log("Payment response:", data);
+
+      if (data.success && data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      } else {
+        toast.error(data.message || "Payment initiation failed");
+        console.error("Payment error:", data);
+      }
+    } catch (err) {
+      console.error("Full error object:", err);
+      console.error("Error response:", err.response?.data);
+      console.error("Error message:", err.message);
+      toast.error(
+        err.response?.data?.message || err.message || "Payment initiation error"
+      );
+    }
+  };
+
   useEffect(() => {
     if (token) {
       getUserAppointments();
@@ -99,7 +126,10 @@ const MyAppointrments = () => {
             <div></div>
             <div className="flex flex-col gap-2 justify-end ">
               {!item.cancelled && (
-                <button className="text-sm text-stone-500 text-center sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300">
+                <button
+                  onClick={() => handlePay(item._id)}
+                  className="text-sm text-stone-500 text-center sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300"
+                >
                   Pay Online
                 </button>
               )}
