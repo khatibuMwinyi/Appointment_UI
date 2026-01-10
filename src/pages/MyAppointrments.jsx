@@ -6,6 +6,11 @@ import { useEffect, useState } from "react";
 const MyAppointrments = () => {
   const { backendUrl, token, getDoctorsData } = useContext(AppContext);
   const [appointments, setAppointments] = useState([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showUssdModal, setShowUssdModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [ussdOrderId, setUssdOrderId] = useState(null);
+  const [ussdAmount, setUssdAmount] = useState(null);
   const months = [
     "",
     "Jan",
@@ -65,16 +70,35 @@ const MyAppointrments = () => {
   const handlePay = async (appointmentId) => {
     try {
       console.log("Initiating payment for appointment:", appointmentId);
+      
+      // Find the appointment data
+      const appointment = appointments.find(apt => apt._id === appointmentId);
+      if (!appointment) {
+        toast.error("Appointment not found");
+        return;
+      }
+
       const { data } = await axios.post(
         backendUrl + "/api/payment/initiate",
-        { appointmentId },
+        { 
+          docId: appointment.docData._id,
+          slotDate: appointment.slotDate,
+          slotTime: appointment.slotTime,
+          amount: appointment.docData.fees 
+        },
         { headers: { token } }
       );
 
       console.log("Payment response:", data);
+      console.log("Order ID from response:", data.order_id);
+      console.log("Full response structure:", JSON.stringify(data, null, 2));
 
-      if (data.success && data.paymentUrl) {
-        window.location.href = data.paymentUrl;
+      if (data.success) {
+        toast.success("Payment initiated! Please follow USSD instructions.");
+        setShowPaymentModal(false);
+        
+        // Show USSD payment instructions
+        showUssdInstructions(data.order_id, appointment.docData.fees);
       } else {
         toast.error(data.message || "Payment initiation failed");
         console.error("Payment error:", data);
@@ -87,6 +111,12 @@ const MyAppointrments = () => {
         err.response?.data?.message || err.message || "Payment initiation error"
       );
     }
+  };
+
+  const showUssdInstructions = (orderId, amount) => {
+    setUssdOrderId(orderId);
+    setUssdAmount(amount);
+    setShowUssdModal(true);
   };
 
   useEffect(() => {
@@ -150,6 +180,46 @@ const MyAppointrments = () => {
           </div>
         ))}
       </div>
+
+      {/* USSD Instructions Modal */}
+      {showUssdModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold mb-4">Payment Instructions</h2>
+            <div className="mb-6">
+              <div className="bg-green-50 border border-green-200 p-4 rounded mb-4">
+                <p className="text-sm font-medium text-green-800 mb-2"> Payment Initiated Successfully!</p>
+                <p className="text-sm"><strong>Order ID:</strong> {ussdOrderId}</p>
+                <p className="text-sm"><strong>Amount:</strong> ${ussdAmount}</p>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-4">
+                <p className="font-medium mb-3"> What happens next:</p>
+                <div className="space-y-2 text-sm">
+                  <p className="font-semibold text-blue-600">Automatic USSD Prompt:</p>
+                  <p className="text-gray-700">You will receive a USSD prompt on your phone shortly to confirm payment of ${ussdAmount} TZS for Order ID: {ussdOrderId}</p>
+                  <p className="text-xs text-gray-600">Simply follow the on-screen instructions to complete payment</p>
+                  
+                  <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                    <p className="text-xs text-yellow-800 font-medium">
+                      <strong> Quick Tip:</strong> Keep your phone handy and ensure you have sufficient mobile money balance. The appointment will be confirmed automatically after successful payment.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowUssdModal(false)}
+                className="flex-1 bg-primary text-white py-3 rounded-lg hover:brightness-90 transition"
+              >
+                Got it!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
