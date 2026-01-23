@@ -24,7 +24,7 @@ const MyProfile = () => {
       const { data } = await axios.post(
         backendUrl + "/api/user/update-profile",
         formData,
-        { headers: { token } }
+        { headers: { token } },
       );
 
       if (data.success) {
@@ -86,7 +86,7 @@ const MyProfile = () => {
             {userData.name}
           </p>
         )}
-        <hr className="bg-zinc-400 h-[1px] border-none" />
+        <hr className="bg-zinc-400 h-px border-none" />
         {/* --------- Contact Info --------- */}
         <div>
           <h1 className="text-neutral-500 underline mt-3">
