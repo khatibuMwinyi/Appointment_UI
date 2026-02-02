@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -28,19 +28,15 @@ const MyAppointrments = () => {
 
   const slotDateFormat = (slotDate) => {
     const dateArray = slotDate.split("-");
-    return `${dateArray[2]} ${
-      months[Number(dateArray[1])]
-    } ${dateArray[0]}`;
+    return `${dateArray[2]} ${months[Number(dateArray[1])]} ${dateArray[0]}`;
   };
 
+  // --- Fetch user appointments ---
   const getUserAppointments = async () => {
     try {
-      const { data } = await axios.get(
-        backendUrl + "/api/user/appointments",
-        {
-          headers: { token },
-        }
-      );
+      const { data } = await axios.get(backendUrl + "/api/user/appointments", {
+        headers: { token },
+      });
 
       if (data.success) {
         setAppointments(data.appointments.reverse());
@@ -53,6 +49,7 @@ const MyAppointrments = () => {
     }
   };
 
+  // --- Cancel appointment ---
   const cancelAppointment = async (appointmentId) => {
     try {
       const { data } = await axios.post(
@@ -60,13 +57,13 @@ const MyAppointrments = () => {
         { appointmentId },
         {
           headers: { token },
-        }
+        },
       );
 
       if (data.success) {
         toast.success(data.message);
         getUserAppointments();
-        getDoctorsData(); // refresh doctor slots
+        getDoctorsData();
       } else {
         toast.error(data.message || "Failed to cancel appointment");
       }
@@ -76,18 +73,17 @@ const MyAppointrments = () => {
     }
   };
 
+  // --- Show USSD modal ---
   const showUssdInstructions = (orderId, amount) => {
     setUssdOrderId(orderId);
     setUssdAmount(amount);
     setShowUssdModal(true);
   };
 
+  // --- Initiate payment via ZenoPay ---
   const handlePay = async (appointmentId) => {
     try {
-      // Find appointment in local state
-      const appointment = appointments.find(
-        (apt) => apt._id === appointmentId
-      );
+      const appointment = appointments.find((apt) => apt._id === appointmentId);
       if (!appointment) {
         toast.error("Appointment not found");
         return;
@@ -106,21 +102,21 @@ const MyAppointrments = () => {
       const { data } = await axios.post(
         backendUrl + "/api/payment/initiate",
         { appointmentId },
-        { headers: { token } }
+        { headers: { token } },
       );
 
       console.log("Payment response:", data);
 
       if (data.success) {
         toast.success(
-          "Payment initiated! Please follow the USSD instructions on your phone."
+          "Payment initiated! Please follow the USSD instructions on your phone.",
         );
 
         // Use normalized orderId from backend and amount from appointment
         showUssdInstructions(data.orderId, appointment.amount);
 
-        // Refresh appointments later if you want to reflect payment status
-        setTimeout(getUserAppointments, 10000);
+        // Optional: you could also schedule a refresh if you want
+        // setTimeout(getUserAppointments, 15000);
       } else {
         toast.error(data.message || "Payment initiation failed");
         console.error("Payment error:", data);
@@ -130,7 +126,7 @@ const MyAppointrments = () => {
       toast.error(
         err.response?.data?.message ||
           err.message ||
-          "Payment initiation error"
+          "Payment initiation error",
       );
     }
   };
@@ -140,11 +136,13 @@ const MyAppointrments = () => {
       getUserAppointments();
     }
   }, [token]);
+
   return (
     <div>
       <p className="font-medium text-zinc-700 border-b border-gray-400 pb-3 mt-12">
         My appointments
       </p>
+
       <div>
         {appointments.map((item) => (
           <div
@@ -158,6 +156,7 @@ const MyAppointrments = () => {
                 alt={item.docData.name}
               />
             </div>
+
             <div className="flex-1 text-sm text-zinc-600">
               <p className="text-neutral-800 font-semibold">
                 {item.docData.name}
@@ -175,25 +174,23 @@ const MyAppointrments = () => {
                 {slotDateFormat(item.slotDate)} | {item.slotTime}
               </p>
 
+              {/* Payment status label - THIS is what you asked about */}
               {item.payment?.status === "PAID" && !item.cancelled && (
-                <p className="text-xs text-green-600 mt-1">
-                  Payment completed
-                </p>
+                <p className="text-xs text-green-600 mt-1">Payment completed</p>
               )}
             </div>
 
             <div></div>
 
             <div className="flex flex-col gap-2 justify-end">
-              {!item.cancelled &&
-                item.payment?.status !== "PAID" && (
-                  <button
-                    onClick={() => handlePay(item._id)}
-                    className="text-sm text-stone-500 text-center sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300"
-                  >
-                    Pay Online
-                  </button>
-                )}
+              {!item.cancelled && item.payment?.status !== "PAID" && (
+                <button
+                  onClick={() => handlePay(item._id)}
+                  className="text-sm text-stone-500 text-center sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300"
+                >
+                  Pay Online
+                </button>
+              )}
 
               {!item.cancelled && (
                 <button
@@ -218,9 +215,7 @@ const MyAppointrments = () => {
       {showUssdModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold mb-4">
-              Payment Instructions
-            </h2>
+            <h2 className="text-2xl font-bold mb-4">Payment Instructions</h2>
 
             <div className="mb-6">
               <div className="bg-green-50 border border-green-200 p-4 rounded mb-4">
@@ -242,8 +237,8 @@ const MyAppointrments = () => {
                     Automatic USSD Prompt:
                   </p>
                   <p className="text-gray-700">
-                    You will receive a USSD prompt on your phone shortly
-                    to confirm payment of ${ussdAmount} TZS for Order ID:{" "}
+                    You will receive a USSD prompt on your phone shortly to
+                    confirm payment of ${ussdAmount} TZS for Order ID:{" "}
                     {ussdOrderId}
                   </p>
                   <p className="text-xs text-gray-600">
@@ -253,10 +248,10 @@ const MyAppointrments = () => {
 
                   <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
                     <p className="text-xs text-yellow-800 font-medium">
-                      <strong>Quick Tip:</strong> Keep your phone handy
-                      and ensure you have sufficient mobile money
-                      balance. The appointment will be confirmed
-                      automatically after successful payment.
+                      <strong>Quick Tip:</strong> Keep your phone handy and
+                      ensure you have sufficient mobile money balance. The
+                      appointment will be confirmed automatically after
+                      successful payment.
                     </p>
                   </div>
                 </div>
@@ -265,7 +260,11 @@ const MyAppointrments = () => {
 
             <div className="flex gap-4">
               <button
-                onClick={() => setShowUssdModal(false)}
+                onClick={() => {
+                  // KEY CHANGE: refresh appointments after closing modal
+                  setShowUssdModal(false);
+                  getUserAppointments(); 
+                }}
                 className="flex-1 bg-primary text-white py-3 rounded-lg hover:brightness-90 transition"
               >
                 Got it!
